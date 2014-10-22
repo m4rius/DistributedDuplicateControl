@@ -3,7 +3,6 @@ package eu.nets.hackathon.copycat;
 import net.kuujo.copycat.Command;
 import net.kuujo.copycat.Query;
 import net.kuujo.copycat.StateMachine;
-import org.apache.log4j.spi.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -54,6 +53,7 @@ public class KeyValueStore implements StateMachine {
     @Command
     public void set(String key, Object value) {
         log.info(String.format("Set %s-%s", key, value));
+        System.out.println("Set Called *****************************'");
         data.put(key, value);
     }
 
