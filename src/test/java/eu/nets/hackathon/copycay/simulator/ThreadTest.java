@@ -7,59 +7,54 @@ import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ThreadTest {
 
 
-    private static final int NUMBER_OF_THREADS = 30;
+    private static final int NUMBER_OF_THREADS = 100;
     private static final int NO_OF_INVOCATIONS = 100;
 
     @Test
     public void doStuffInThreads() throws InterruptedException {
-        final List<Thread> threads = new ArrayList<>();
-
+        final Random random = new Random(2l);
+        final ExecutorService executorService = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+            
         final CountDownLatch latch = new CountDownLatch(NUMBER_OF_THREADS);
-
+        
         for (int i = 0; i < NUMBER_OF_THREADS; i++) {
-            final Thread t = new Thread(new Runnable() {
+            final Runnable task = new Runnable() {
                 @Override
                 public void run() {
                     for (int j = 0; j < NO_OF_INVOCATIONS; j++) {
                         try {
                             int port = 8081 + (j % 3);
-                            post(j, port);
+                            sendPost("[\"" + j + "\"]", port);
                         } catch (Exception e) {
                             System.out.println("*********** e = " + e);
                         }
 
                         try {
-                            Thread.sleep((j % 3) + 5);
+                            Thread.sleep(random.nextInt(10));
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                     }
                     latch.countDown();
                 }
-
-                private void post(int j, int port) throws Exception {
-                    String s = sendPost("[\""+j+"\"]", port);
-                    //System.out.println(s);
-                }
-            });
-            threads.add(t);
+                
+            };
+            executorService.submit(task);
         }
 
-        for (Thread thread : threads) {
-            thread.start();
-        }
-
-        latch.await(30, TimeUnit.SECONDS);
+        latch.await(40, TimeUnit.SECONDS);
+        
     }
-
+    
     private String sendPost(String urlParameters, int port) throws Exception {
 
         String url = String.format("http://localhost:%s/set", port);
@@ -94,7 +89,7 @@ public class ThreadTest {
         in.close();
 
         //print result
-        System.out.printf("\nSending 'POST' request to URL : %s  Response: %s", url, response);
+        System.out.println(String.format("Sending 'POST' request to URL : %s %s  Response: %s", url, urlParameters, response));
         return response.toString();
 
     }

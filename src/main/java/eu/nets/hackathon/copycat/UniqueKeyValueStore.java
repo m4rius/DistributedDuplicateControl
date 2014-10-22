@@ -73,8 +73,8 @@ public class UniqueKeyValueStore implements StateMachine {
     }
 
     @Command
-    public void delete(String key) {
-        data.remove(key);
+    public void delete() {
+        data.clear();
     }
 
 }
