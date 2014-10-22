@@ -55,6 +55,11 @@ public class UniqueKeyValueStore implements StateMachine {
         return b.toString();
     }
 
+//    @Query
+//    public Object size() {
+//        return data.size();
+//    }
+
     @Command
     public String set(String value) {
         log.info(String.format("Set %s", value));
