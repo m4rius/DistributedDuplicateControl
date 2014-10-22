@@ -9,9 +9,8 @@ import net.kuujo.copycat.event.Events;
 import net.kuujo.copycat.log.InMemoryLog;
 import net.kuujo.copycat.log.Log;
 import net.kuujo.copycat.protocol.VertxEventBusProtocol;
+import net.kuujo.copycat.service.VertxHttpService;
 import net.kuujo.copycat.spi.protocol.AsyncProtocol;
-
-import java.util.List;
 
 public class CopycatNode {
 
@@ -20,8 +19,9 @@ public class CopycatNode {
     private final AsyncProtocol protocol;
     private final StateMachine stateMachine;
     public final AsyncCopycat copycat;
+    private final VertxHttpService service;
 
-    public CopycatNode(String localMember, Integer vertexPort, String... remoteMembers) {
+    public CopycatNode(String localMember, Integer vertexPort, int httpPort, String... remoteMembers) {
         log = new InMemoryLog();
 
         EventBusClusterConfig config = new EventBusClusterConfig();
@@ -35,10 +35,14 @@ public class CopycatNode {
         protocol = new VertxEventBusProtocol("localhost", vertexPort);
 
         // Create a state machine instance.
-        stateMachine = new KeyValueStore();
+        stateMachine = new UniqueKeyValueStore();
 
         // Create a Copycat instance.
         copycat = new AsyncCopycat(stateMachine, log, cluster, protocol);
+
+        //Create an HTTP service and start it.
+        service = new VertxHttpService(copycat, "localhost", httpPort);
+
     }
 
     public void start() {
@@ -51,6 +55,8 @@ public class CopycatNode {
         copycat.event(Events.STATE_CHANGE).registerHandler((event) -> {
             System.out.println(String.format("------------ %s members", event.state()));
         });
+
+        service.start().thenRun(() -> System.out.println("VertxHttpService Started = " + service));
     }
 
 }
