@@ -21,7 +21,7 @@ import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StronglyConsistentFaultTolerantAndTotallyAwesomeKeyValueStore implements StateMachine {
+public class StronglyConsistentFaultTolerantAndTotallyAwesomeKeyValueStore {
 
     public static void main(String[] args) {
         // Create the local file log.
@@ -30,7 +30,7 @@ public class StronglyConsistentFaultTolerantAndTotallyAwesomeKeyValueStore imple
         // Configure the cluster.
         TcpClusterConfig config = new TcpClusterConfig();
         config.setLocalMember(new TcpMember("localhost", 1234));
-        config.setRemoteMembers(new TcpMember("localhost", 2345), new TcpMember("localhost", 4567));
+        config.setRemoteMembers(new TcpMember("10.40.16.146", 1234), new TcpMember("localhost", 4567));
 
         // Create the cluster.
         TcpCluster cluster = new TcpCluster(config);
@@ -39,55 +39,21 @@ public class StronglyConsistentFaultTolerantAndTotallyAwesomeKeyValueStore imple
         AsyncProtocol protocol = new VertxTcpProtocol();
 
         // Create a state machine instance.
-        StateMachine stateMachine = new StronglyConsistentFaultTolerantAndTotallyAwesomeKeyValueStore();
+        StateMachine stateMachine = new KeyValueStore();
 
         // Create a Copycat instance.
         AsyncCopycat copycat = new AsyncCopycat(stateMachine, log, cluster, protocol);
+        copycat.start().thenRun(() -> {
+            System.out.println("************************");
+            System.out.println("Server started ");
+            System.out.println("************************");
+        });
 
         // Create an HTTP service and start it.
         VertxHttpService service = new VertxHttpService(copycat, "localhost", 8080);
         service.start();
     }
 
-    private Map<String, Object> data = new HashMap<>();
 
-    @Override
-    public byte[] takeSnapshot() {
-        try {
-            ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-            ObjectOutputStream out = new ObjectOutputStream(byteOut);
-            out.writeObject(data);
-            return byteOut.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void installSnapshot(byte[] data)  {
-        try {
-            ByteArrayInputStream byteIn = new ByteArrayInputStream(data);
-            ObjectInputStream in = new ObjectInputStream(byteIn);
-            this.data = (Map<String, Object>) in.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-
-    @Query
-    public Object get(String key) {
-        return data.get(key);
-    }
-
-    @Command
-    public void set(String key, Object value) {
-        data.put(key, value);
-    }
-
-    @Command
-    public void delete(String key) {
-        data.remove(key);
-    }
 
 }
